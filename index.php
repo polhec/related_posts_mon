@@ -14,9 +14,81 @@ Version: 0.1
 Author URI: http://med.over.net
 */
 
-//V file od teme single.php je potrebno dadati hook: do_action('related_posts')
+//V file od teme single.php je potrebno za tag </article> dodati hook: do_action('related_posts')
 
-// Preveri in opozori, če ni naložen advanced-custum-fields plugin
+/**
+// Generiraj custom field za izbiro povezanih postov
+*/
+add_action( 'init', 'rp_add_field' );
+
+function rp_add_field()
+{
+	if(function_exists("register_field_group"))
+	{
+		register_field_group(array (
+			'id' => 'acf_relacije',
+			'title' => 'Relacije',
+			'fields' => array (
+				array (
+					'key' => 'field_55fbadff07c46',
+					'label' => 'Relacije',
+					'name' => 'relacije',
+					'type' => 'relationship',
+					'instructions' => 'Izberi podobne članke',
+					'return_format' => 'id',
+					'post_type' => array (
+						0 => 'post',
+					),
+					'taxonomy' => array (
+						0 => 'all',
+					),
+					'filters' => array (
+						0 => 'search',
+					),
+					'result_elements' => array (
+						0 => 'post_type',
+						1 => 'post_title',
+					),
+					'max' => 4,
+				),
+				array (
+					'key' => 'field_55fbae2f07c47',
+					'label' => '',
+					'name' => '',
+					'type' => 'text',
+					'default_value' => '',
+					'placeholder' => '',
+					'prepend' => '',
+					'append' => '',
+					'formatting' => 'html',
+					'maxlength' => '',
+				),
+			),
+			'location' => array (
+				array (
+					array (
+						'param' => 'post_type',
+						'operator' => '==',
+						'value' => 'post',
+						'order_no' => 0,
+						'group_no' => 0,
+					),
+				),
+			),
+			'options' => array (
+				'position' => 'normal',
+				'layout' => 'no_box',
+				'hide_on_screen' => array (
+				),
+			),
+			'menu_order' => 0,
+		));
+	}
+}
+
+/**
+	 Preveri in opozori, če ni naložen advanced-custum-fields plugin
+*/
 add_action( 'admin_notices', 'rp_check_plugin' );
 
 function rp_check_plugin()
@@ -27,6 +99,9 @@ function rp_check_plugin()
 	}
 }
 
+/**
+	 Naloži in izpiši poste
+*/
 add_action( 'related_posts', 'related_posts' );
 
 function related_posts()
