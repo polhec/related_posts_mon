@@ -1,5 +1,3 @@
-
-
 <?php
 /**
  * @package RelatedPosts MON
@@ -198,7 +196,7 @@ function related_posts()
 function rp_izpis()
 {
 
-	if ( !assert( "locate_template( 'rp_template.php', true, false )" ) )
+	if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
 	{
 		include "rp_template.php";
 	}
