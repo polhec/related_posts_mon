@@ -196,7 +196,7 @@ function related_posts()
 function rp_izpis()
 {
 
-	if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
+	if ( empty( locate_template( 'rp_template.php', true, false ) ) )
 	{
 		include "rp_template.php";
 	}
