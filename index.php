@@ -129,7 +129,7 @@ function rp_izbrani()
 	  		$rp_x++;
 		}
 
-		wp_reset_postdata();
+//		wp_reset_postdata();
 	}
 }
 
@@ -189,7 +189,7 @@ function related_posts()
 	$rp_prikazani[0] = get_the_ID();
 
 	rp_izbrani();
-	rp_url();
+//	rp_url();
 
 	//Če niso izbrani 4 posti, poišči dodatne, glede na kategorijo ali tag
 	if ( $rp_x < 4 )
