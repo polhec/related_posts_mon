@@ -19,6 +19,10 @@ Author URI: http://med.over.net
 /**
 // Generiraj custom field za izbiro povezanih postov
 */
+
+$rp_x = 0;	//Štetje, koliko postov je bilo izpisanih
+$rp_prikazani = array();	//ID glavnega posta, da se ne ponovi v predlogih
+
 add_action( 'init', 'rp_add_field' );
 
 function rp_add_field()
@@ -104,16 +108,13 @@ function rp_check_plugin()
 */
 add_action( 'related_posts', 'related_posts' );
 
-function related_posts()
+function rp_izbrani()
 {
-  	echo "<h3 class=\"dividing-title\">Oglejte si še</h3>";
-
-	$rp_prikazani[0] = get_the_ID();	//ID glavnega posta, da se ne ponovi v predlogih
 	global $post;
-	$rp_x = 0;	//Štetje, koliko postov je bilo izpisanih
+	global $rp_x;
+	global $rp_prikazani;
 
 	$rp_relacije = get_field('relacije');	//Funkcija od Advanced custom fields plugina, no plugin no FUN
-
 	//Izpiši ročno izbrane poste
 	if ($rp_relacije)
 	{
@@ -130,6 +131,65 @@ function related_posts()
 
 		wp_reset_postdata();
 	}
+}
+
+function rp_url()
+{
+	global $post;
+	global $rp_x;
+	global $rp_prikazani;
+
+	if ( $rp_x < 4 )
+	{
+		$rp_relacije = get_field('links');
+		$rp_povezave = explode ( "\n" , trim( $rp_relacije ) );
+
+		foreach ( $rp_povezave as $rp_item )
+		{
+			if(filter_var($rp_item, FILTER_VALIDATE_URL))
+			{
+				$rp_html = file_get_contents( trim( $rp_item ) );
+
+				$rp_pattern = '/(?<=og:title" content=")(.*)(?=")/'; //Najdi naslov
+				preg_match($rp_pattern, $rp_html, $rp_matches);
+				$post->post_title = $rp_matches[0];
+
+				$rp_pattern = '/(?<=og:description" content=")(.*)(?=")/'; //Najdi opis
+				preg_match($rp_pattern, $rp_html, $rp_matches);
+				$post->post_excerpt = $rp_matches[0];
+
+				$rp_pattern = '/(?<=og:url" content=")(.*)(?=")/'; //Najdi url
+				preg_match($rp_pattern, $rp_html, $rp_matches);
+				$rp_povezava = $rp_matches[0];
+
+				$rp_pattern = '/(?<=og:image" content=")(.*)(?=")/'; //Najdi sliko
+				preg_match($rp_pattern, $rp_html, $rp_matches);
+				$rp_slika = $rp_matches[0];
+
+		  		rp_izpis($rp_povezava, $rp_slika);
+
+				$rp_x++;
+
+				if ($rp_x == 4) 
+				{
+					break;
+				}
+			}
+		}
+		wp_reset_postdata();
+	}
+}
+
+function related_posts()
+{
+  	echo "<h3 class=\"dividing-title\">Oglejte si še</h3>";
+	global $post;
+	global $rp_x;
+	global $rp_prikazani;
+	$rp_prikazani[0] = get_the_ID();
+
+	rp_izbrani();
+	rp_url();
 
 	//Če niso izbrani 4 posti, poišči dodatne, glede na kategorijo ali tag
 	if ( $rp_x < 4 )
@@ -195,10 +255,9 @@ function related_posts()
 	}
 }
 
-function rp_izpis()
+function rp_izpis($rp_povezava, $rp_slika)
 {
-
-	if ( !assert( "locate_template( 'rp_template.php', true, false )" ) )
+	if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
 	{
 		include "rp_template.php";
 	}
