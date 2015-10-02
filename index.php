@@ -98,7 +98,7 @@ function rp_check_plugin()
 }
 
 /**
-	 Naloži in izpiši poste
+	Naloži in izpiši poste
 */
 add_action( 'related_posts', 'related_posts' );
 
@@ -135,7 +135,13 @@ function related_posts()
 		$rp_categories = get_the_category();
 		foreach ( $rp_categories as $rp_category ) 
 		{ 
-			$rp_cat_list[] = $rp_category->term_id;
+			if ( 	$rp_category->term_id != get_cat_ID("prva_stran1") AND 
+					$rp_category->term_id != get_cat_ID("prva_stran2") AND 
+					$rp_category->term_id != get_cat_ID("prva_stran3") AND 
+					$rp_category->term_id != get_cat_ID("slider") )
+			{
+				$rp_cat_list[] = $rp_category->term_id;
+			}
 		}
 
 		$rp_oznake = get_the_tags();
