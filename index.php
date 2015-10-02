@@ -135,32 +135,36 @@ function related_posts()
 		$rp_categories = get_the_category();
 		foreach ( $rp_categories as $rp_category ) 
 		{ 
-			$cat_IDs .= $rp_category->term_id . ",";
+			$rp_cat_list[] = $rp_category->term_id;
 		}
 
-		$cat_IDs = substr($cat_IDs, 0, -1);
-
 		$rp_oznake = get_the_tags();
-
-		if ($rp_oznake) 
+		foreach($rp_oznake as $rp_oznaka) 
 		{
-			foreach($rp_oznake as $oznaka) 
-			{
-				$seznam_oznak .= $oznaka->name . ",";
-			}
-			$seznam_oznak = substr($seznam_oznak, 0, -1);
+			$rp_tag_list[] = $rp_oznaka->term_id;
 		}
 
 		$rp_args = array(
 			'posts_per_page'   	=> 6-$rp_x,
-			'tag'				=> "$seznam_oznak",
 			'offset'           	=> 0,
-			'category'         	=> "$cat_IDs",
 			'orderby'          	=> 'date',
 			'order'            	=> 'DESC',
 			'post_type'        	=> 'post',
 			'post_status'      	=> 'publish',
-			'suppress_filters' 	=> true 
+			'suppress_filters' 	=> true,
+			'tax_query'			=> array(
+				'relation' 			=> 'OR',
+					array(
+						'taxonomy' => 'post_tag',
+						'field'    => 'term_id',
+						'terms'    => $rp_tag_list
+					),
+					array(
+						'taxonomy' => 'category',
+						'field'    => 'term_id',
+						'terms'    => $rp_cat_list
+					),
+				),
 		);
 
 		$rp_post_array = get_posts( $rp_args );
