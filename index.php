@@ -222,7 +222,7 @@ Get some random posts
 		}
 	}
 /**
-Test if ACF plugin is present and activated
+Test if ACF plugin is present and activated, if not, show warning
 */
 	function check_ACF()
 	{
@@ -249,7 +249,7 @@ Generate custom fields (ACF plugin required)
 						'name' => 'links',
 						'type' => 'textarea',
 						'instructions' => 'Dodaj povezave do sorodnih člankov (največ 4)',
-						'default_value' => 'http://www...',
+						'default_value' => '',
 						'placeholder' => '',
 						'maxlength' => '',
 						'rows' => 2,
