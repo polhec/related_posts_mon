@@ -8,7 +8,7 @@
 					<div class="box-top">
 						<div class="meta">
 							<span class="date"></span>
-							<h2 class="title"><?php the_title() ?></h2>
+							<h2 class="title"><?php	the_title() ?></h2>
 						</div>
 								<?php
 								if ($rp_slika): 

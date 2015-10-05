@@ -3,196 +3,128 @@
 <?php
 /**
  * @package RelatedPosts MON
- * @version 0.1
+ * @version 0.3
  */
 /*
 Plugin Name: Related Posts MON
 Plugin URI: http://med.over.net
 Description: Povezava med posti za Med.Over.Net
 Author: Tine Dolžan
-Version: 0.1 
+Version: 0.3 
 Author URI: http://med.over.net
 */
 
 //V file od teme single.php je potrebno za tag </article> dodati hook: do_action('related_posts')
 
-/**
-// Generiraj custom field za izbiro povezanih postov
-*/
-
-$rp_x = 0;	//Štetje, koliko postov je bilo izpisanih
-$rp_prikazani = array();	//ID glavnega posta, da se ne ponovi v predlogih
-
-add_action( 'init', 'rp_add_field' );
-
-function rp_add_field()
-{
-	if(function_exists("register_field_group"))
-	{
-		register_field_group(array (
-			'id' => 'acf_relacije',
-			'title' => 'Relacije',
-			'fields' => array (
-				array (
-					'key' => 'field_55fbadff07c46',
-					'label' => 'Relacije',
-					'name' => 'relacije',
-					'type' => 'relationship',
-					'instructions' => 'Izberi podobne članke',
-					'return_format' => 'id',
-					'post_type' => array (
-						0 => 'post',
-					),
-					'taxonomy' => array (
-						0 => 'all',
-					),
-					'filters' => array (
-						0 => 'search',
-					),
-					'result_elements' => array (
-						0 => 'post_type',
-						1 => 'post_title',
-					),
-					'max' => 4,
-				),
-				array (
-					'key' => 'field_55fbae2f07c47',
-					'label' => '',
-					'name' => '',
-					'type' => 'text',
-					'default_value' => '',
-					'placeholder' => '',
-					'prepend' => '',
-					'append' => '',
-					'formatting' => 'html',
-					'maxlength' => '',
-				),
-			),
-			'location' => array (
-				array (
-					array (
-						'param' => 'post_type',
-						'operator' => '==',
-						'value' => 'post',
-						'order_no' => 0,
-						'group_no' => 0,
-					),
-				),
-			),
-			'options' => array (
-				'position' => 'normal',
-				'layout' => 'no_box',
-				'hide_on_screen' => array (
-				),
-			),
-			'menu_order' => 0,
-		));
-	}
-}
-
-/**
-	 Preveri in opozori, če ni naložen advanced-custum-fields plugin
-*/
-add_action( 'admin_notices', 'rp_check_plugin' );
-
-function rp_check_plugin()
-{
-	if ( is_plugin_inactive( 'advanced-custom-fields/acf.php' ) )
-	{
-		echo"<div class=\"error\"> <p>Related Posts MON: Plugin Advanced Custom Fields ni naložen ali aktiviran!</p></div>"; 
-	}
-}
-
-/**
-	 Naloži in izpiši poste
-*/
+add_action( 'admin_notices', 'RelatedPost::check_ACF' );
+add_action( 'init', 'RelatedPost::add_fields' );
 add_action( 'related_posts', 'related_posts' );
 
-function rp_izbrani()
+function related_posts()
 {
-	global $post;
-	global $rp_x;
-	global $rp_prikazani;
+	$rel_posts = new RelatedPost;
+	$rel_posts->selected();
+	$rel_posts->url();
+	$rel_posts->print_posts();
+	$rel_posts->print_ex_posts();
 
-	$rp_relacije = get_field('relacije');	//Funkcija od Advanced custom fields plugina, no plugin no FUN
-	//Izpiši ročno izbrane poste
-	if ($rp_relacije)
-	{
-		$rp_args = array( 'post__in' => $rp_relacije );
-		$rp_post_array = get_posts( $rp_args );
-
-		foreach ( $rp_post_array as $post )
-		{
-	  		setup_postdata( $post );
-	  		rp_izpis();
-	  		$rp_prikazani[$rp_x+1] = get_the_ID();
-	  		$rp_x++;
-		}
-
-//		wp_reset_postdata();
-	}
+	echo $rel_posts->x;
 }
 
-function rp_url()
-{
-	global $post;
-	global $rp_x;
-	global $rp_prikazani;
+class RelatedPost {
+	public 		$x = 0; //Counter of found posts
+	public 		$show_posts = 4; //Number of posts to show
+	private 	$posts_array = array();
+	private 	$ex_posts_array = array();
 
-	if ( $rp_x < 4 )
+/**
+	 Get external posts
+*/
+	 function url()
 	{
-		$rp_relacije = get_field('links');
-		$rp_povezave = explode ( "\n" , trim( $rp_relacije ) );
+		$relacije = get_field('links');
+		$povezave = explode ( "\n" , trim( $relacije ) );
 
-		foreach ( $rp_povezave as $rp_item )
+		foreach ( $povezave as $rp_item )
 		{
 			if(filter_var($rp_item, FILTER_VALIDATE_URL))
 			{
+				$this->ex_posts_array[] = array();
+				$num = count($this->ex_posts_array) - 1;
+
 				$rp_html = file_get_contents( trim( $rp_item ) );
 
 				$rp_pattern = '/(?<=og:title" content=")(.*)(?=")/'; //Najdi naslov
 				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$post->post_title = $rp_matches[0];
+				$this->ex_posts_array[$num][post_title] = $rp_matches[0];
 
 				$rp_pattern = '/(?<=og:description" content=")(.*)(?=")/'; //Najdi opis
 				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$post->post_excerpt = $rp_matches[0];
+				$this->ex_posts_array[$num][post_excerpt] = $rp_matches[0];
 
 				$rp_pattern = '/(?<=og:url" content=")(.*)(?=")/'; //Najdi url
 				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$rp_povezava = $rp_matches[0];
+				$this->ex_posts_array[$num][link] = $rp_matches[0];
 
 				$rp_pattern = '/(?<=og:image" content=")(.*)(?=")/'; //Najdi sliko
 				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$rp_slika = $rp_matches[0];
+				$this->ex_posts_array[$num][image] = $rp_matches[0];
 
-		  		rp_izpis($rp_povezava, $rp_slika);
-
-				$rp_x++;
-
-				if ($rp_x == 4) 
-				{
-					break;
-				}
+				$this->x++;
 			}
+		}
+	}
+/**
+	 Get selected posts
+*/
+	public function selected()
+	{
+		$relacije = get_field('relacije');	//ACF function, no plugin no fun
+		if ($relacije)
+		{
+			$args = array( 'post__in' => $relacije );
+			$post_array_temp = get_posts( $args );
+
+			$this->posts_array = array_merge($this->posts_array, $post_array_temp);
+			$this->x += count( $this->posts_array);
+		}
+	}
+/**
+	 Print found posts
+*/
+	function print_posts()
+	{
+		global $post;
+		$i = 0;
+		foreach ( $this->posts_array as $post)##and $i < $this->show_posts)
+		{
+			setup_postdata($post);
+			if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
+			{
+				include "rp_template.php";
+			}
+			$i++;
 		}
 		wp_reset_postdata();
 	}
-}
 
-function related_posts()
+	function print_ex_posts()
+	{
+		foreach ( $this->ex_posts_array as $post)##and $i < $this->show_posts)
+		{
+			if ( !assert( locate_template( 'rp_template_ex.php', true, false ) ) )
+			{
+				include "rp_template_ex.php";
+			}
+		}
+	}
+	/**
+Get some random posts
+*/
+function random()
 {
-  	echo "<h3 class=\"dividing-title\">Oglejte si še</h3>";
-	global $post;
-	global $rp_x;
-	global $rp_prikazani;
-	$rp_prikazani[0] = get_the_ID();
-
-	rp_izbrani();
-//	rp_url();
-
 	//Če niso izbrani 4 posti, poišči dodatne, glede na kategorijo ali tag
-	if ( $rp_x < 4 )
+	if ( $this->x < 4 )
 	{
 		$rp_categories = get_the_category();
 		foreach ( $rp_categories as $rp_category ) 
@@ -255,12 +187,125 @@ function related_posts()
 	}
 }
 
-function rp_izpis($rp_povezava, $rp_slika)
-{
-	if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
+
+/**
+Test if ACF plugin is present and activated
+*/
+	function check_ACF()
 	{
-		include "rp_template.php";
+		if ( is_plugin_inactive( 'advanced-custom-fields/acf.php' ) )
+		{
+			echo"<div class=\"error\"> <p>Related Posts MON: Plugin Advanced Custom Fields ni naložen ali aktiviran!</p></div>"; 
+		}
+	}
+/**
+Generate custom fields (ACF plugin required)
+*/
+	function add_fields()
+	{
+		if(function_exists("register_field_group"))
+		{
+			//Texbox custom field for links to other sites
+			register_field_group(array (
+				'id' => 'acf_povezave-do-povezanih-clankov',
+				'title' => 'Povezave do povezanih člankov',
+				'fields' => array (
+					array (
+						'key' => 'field_560cd59df27ac',
+						'label' => 'Povezave do sorodnih člankov',
+						'name' => 'links',
+						'type' => 'textarea',
+						'instructions' => 'Dodaj povezave do sorodnih člankov (največ 4)',
+						'default_value' => 'http://www...',
+						'placeholder' => '',
+						'maxlength' => '',
+						'rows' => 2,
+						'formatting' => 'none',
+					),
+				),
+				'location' => array (
+					array (
+						array (
+							'param' => 'post_type',
+							'operator' => '==',
+							'value' => 'post',
+							'order_no' => 0,
+							'group_no' => 0,
+						),
+					),
+				),
+				'options' => array (
+					'position' => 'normal',
+					'layout' => 'no_box',
+					'hide_on_screen' => array (
+					),
+				),
+				'menu_order' => 0,
+			));
+			//Relasionship custom field
+			register_field_group(array (
+				'id' => 'acf_relacije',
+				'title' => 'Relacije',
+				'fields' => array (
+					array (
+						'key' => 'field_55fbadff07c46',
+						'label' => 'Relacije',
+						'name' => 'relacije',
+						'type' => 'relationship',
+						'instructions' => 'Izberi podobne članke',
+						'return_format' => 'id',
+						'post_type' => array (
+							0 => 'post',
+						),
+						'taxonomy' => array (
+							0 => 'all',
+						),
+						'filters' => array (
+							0 => 'search',
+						),
+						'result_elements' => array (
+							0 => 'post_type',
+							1 => 'post_title',
+						),
+						'max' => 4,
+					),
+					array (
+						'key' => 'field_55fbae2f07c47',
+						'label' => '',
+						'name' => '',
+						'type' => 'text',
+						'default_value' => '',
+						'placeholder' => '',
+						'prepend' => '',
+						'append' => '',
+						'formatting' => 'html',
+						'maxlength' => '',
+					),
+				),
+				'location' => array (
+					array (
+						array (
+							'param' => 'post_type',
+							'operator' => '==',
+							'value' => 'post',
+							'order_no' => 0,
+							'group_no' => 0,
+						),
+					),
+				),
+				'options' => array (
+					'position' => 'normal',
+					'layout' => 'no_box',
+					'hide_on_screen' => array (
+					),
+				),
+				'menu_order' => 0,
+			));
+		}
 	}
 }
+
+$rp_x = 0;	//Štetje, koliko postov je bilo izpisanih
+$rp_prikazani = array();	//ID glavnega posta, da se ne ponovi v predlogih
 
 ?>
