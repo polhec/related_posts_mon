@@ -71,7 +71,7 @@ class RelatedPost {
 
 				$rp_pattern = '/(?<=og:description" content=")(.*)(?=")/'; //Najdi opis
 				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$this->ex_posts_array[$num][post_excerpt] = $rp_matches[0];
+				$this->ex_posts_array[$num][post_excerpt] = wp_trim_words( $rp_matches[0], 55 );
 
 				$rp_pattern = '/(?<=og:url" content=")(.*)(?=")/'; //Najdi url
 				preg_match($rp_pattern, $rp_html, $rp_matches);
