@@ -15,28 +15,38 @@ Author URI: http://med.over.net
 */
 
 //V file od teme single.php je potrebno za tag </article> dodati hook: do_action('related_posts')
-
+/**
+	 Hooks
+*/
 add_action( 'admin_notices', 'RelatedPost::check_ACF' );
 add_action( 'init', 'RelatedPost::add_fields' );
 add_action( 'related_posts', 'related_posts' );
-
+/**
+	 Start
+*/
 function related_posts()
 {
-	$rel_posts = new RelatedPost;
-	$rel_posts->selected();
-	$rel_posts->url();
-	$rel_posts->print_posts();
-	$rel_posts->print_ex_posts();
+	include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
-	echo $rel_posts->x;
+	if ( is_plugin_active('advanced-custom-fields/acf.php') )
+	{
+		$rel_posts = new RelatedPost;
+
+		$rel_posts->selected();			//Load selected posts
+		$rel_posts->url();				//Load external posts
+		$rel_posts->random();			//If not enough selected and external posts found, load random posts
+		$rel_posts->print_ex_posts();	//Print external posts
+		$rel_posts->print_posts();		//Print posts
+	}
 }
-
+/**
+	 RelatedPost class
+*/
 class RelatedPost {
 	public 		$x = 0; //Counter of found posts
 	public 		$show_posts = 4; //Number of posts to show
 	private 	$posts_array = array();
 	private 	$ex_posts_array = array();
-
 /**
 	 Get external posts
 */
@@ -47,6 +57,7 @@ class RelatedPost {
 
 		foreach ( $povezave as $rp_item )
 		{
+			$rp_item = trim($rp_item);
 			if(filter_var($rp_item, FILTER_VALIDATE_URL))
 			{
 				$this->ex_posts_array[] = array();
@@ -86,7 +97,7 @@ class RelatedPost {
 			$post_array_temp = get_posts( $args );
 
 			$this->posts_array = array_merge($this->posts_array, $post_array_temp);
-			$this->x += count( $this->posts_array);
+			$this->x += count( $post_array_temp );
 		}
 	}
 /**
@@ -121,73 +132,95 @@ class RelatedPost {
 	/**
 Get some random posts
 */
-function random()
-{
-	//Če niso izbrani 4 posti, poišči dodatne, glede na kategorijo ali tag
-	if ( $this->x < 4 )
+	function random()
 	{
-		$rp_categories = get_the_category();
-		foreach ( $rp_categories as $rp_category ) 
-		{ 
-			$cat_IDs .= $rp_category->term_id . ",";
-		}
-
-		$cat_IDs = substr($cat_IDs, 0, -1);
-
-		$rp_oznake = get_the_tags();
-
-		if ($rp_oznake) 
+		//Če niso izbrani 4 posti, poišči dodatne, glede na kategorijo ali tag
+		if ( $this->x < $this->show_posts )
 		{
-			foreach($rp_oznake as $oznaka) 
+			$oznake = get_the_tags();
+			foreach($oznake as $oznaka) 
 			{
-				$seznam_oznak .= $oznaka->name . ",";
+				$tag_list[] = $oznaka->term_id;
 			}
-			$seznam_oznak = substr($seznam_oznak, 0, -1);
-		}
 
-		$rp_args = array(
-			'posts_per_page'   	=> 6-$rp_x,
-			'tag'				=> "$seznam_oznak",
-			'offset'           	=> 0,
-			'category'         	=> "$cat_IDs",
-			'orderby'          	=> 'date',
-			'order'            	=> 'DESC',
-			'post_type'        	=> 'post',
-			'post_status'      	=> 'publish',
-			'suppress_filters' 	=> true 
-		);
-
-		$rp_post_array = get_posts( $rp_args );
-
-		foreach ( $rp_post_array as $post )
-		{
-	  		setup_postdata( $post );
-	  		$rp_cid = get_the_ID();
-
-	  		//Preveri, če je post že prikazan in v tem primeru postavi $rp_y = 0
-	  		$rp_y = 1;
-			foreach ( $rp_prikazani as $rp_i )
+			$double_posts = array();
+			$double_posts[] = get_the_ID();
+			foreach ( $this->posts_array as $post)
 			{
-				if ($rp_i == $rp_cid)
-				{
-					$rp_y = 0;
+				$double_posts[] = $post->ID;
+			}
+
+			$args = array(
+				'posts_per_page'   	=> $this->show_posts - $this->x,
+				'post__not_in'		=> $double_posts,
+				'offset'           	=> 0,
+				'orderby'          	=> 'date',
+				'order'            	=> 'DESC',
+				'post_type'        	=> 'post',
+				'post_status'      	=> 'publish',
+				'suppress_filters' 	=> true,
+				'tax_query'			=> array(
+					'relation' 			=> 'OR',
+						array(
+							'taxonomy' => 'post_tag',
+							'field'    => 'term_id',
+							'terms'    => $tag_list
+					),
+				),
+			);
+
+			$post_array_temp = get_posts( $args );
+
+			$this->x += count( $post_array_temp );
+			$this->posts_array = array_merge($this->posts_array, $post_array_temp);
+
+			if( $this->x < $this->show_posts )
+			{
+				$categories = get_the_category();
+				foreach ( $categories as $category ) 
+				{ 
+					if ( 	$category->term_id != get_cat_ID("prva_stran1") AND 
+							$category->term_id != get_cat_ID("prva_stran2") AND 
+							$category->term_id != get_cat_ID("prva_stran3") AND 
+							$category->term_id != get_cat_ID("slider") )
+					{
+						$cat_list[] = $category->term_id;
+					}
 				}
+
+				$double_posts = array();
+				$double_posts[] = get_the_ID();
+				foreach ( $this->posts_array as $post)
+				{
+					$double_posts[] = $post->ID;
+				}
+			
+				$args = array(
+					'posts_per_page'   	=> $this->show_posts - $this->x,
+					'post__not_in'		=> $double_posts,
+					'offset'           	=> 0,
+					'orderby'          	=> 'date',
+					'order'            	=> 'DESC',
+					'post_type'        	=> 'post',
+					'post_status'      	=> 'publish',
+					'suppress_filters' 	=> true,
+					'tax_query'			=> array(
+						'relation' 			=> 'OR',
+							array(
+								'taxonomy' => 'category',
+								'field'    => 'term_id',
+								'terms'    => $cat_list
+							),
+						),
+				);
+
+				$post_array_temp = get_posts( $args );
+
+				$this->posts_array = array_merge($this->posts_array, $post_array_temp);
+				$this->x += count( $this->post_array_temp);
 			}
-
-			//Preveri, če bo post izpisan
-	  		if ( $rp_x < 4 && $rp_y )
-	  		{
-	  			rp_izpis();
-	  			$rp_x++;
-	  		}
-	  		
 		}
-
-		wp_reset_postdata();
 	}
-}
-
-
 /**
 Test if ACF plugin is present and activated
 */
@@ -304,8 +337,4 @@ Generate custom fields (ACF plugin required)
 		}
 	}
 }
-
-$rp_x = 0;	//Štetje, koliko postov je bilo izpisanih
-$rp_prikazani = array();	//ID glavnega posta, da se ne ponovi v predlogih
-
 ?>
