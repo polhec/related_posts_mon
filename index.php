@@ -238,6 +238,55 @@ Generate custom fields (ACF plugin required)
 	{
 		if(function_exists("register_field_group"))
 		{
+
+			//Relasionship custom field
+			register_field_group(array (
+				'id' => 'acf_relacije',
+				'title' => 'Relacije',
+				'fields' => array (
+					array (
+						'key' => 'field_55fbadff07c46',
+						'label' => 'Relacije',
+						'name' => 'relacije',
+						'type' => 'relationship',
+						'instructions' => 'Izberi podobne članke',
+						'return_format' => 'id',
+						'post_type' => array (
+							0 => 'post',
+						),
+						'taxonomy' => array (
+							0 => 'all',
+						),
+						'filters' => array (
+							0 => 'search',
+						),
+						'result_elements' => array (
+							0 => 'post_type',
+							1 => 'post_title',
+						),
+						'max' => 4,
+					),
+				),
+				'location' => array (
+					array (
+						array (
+							'param' => 'post_type',
+							'operator' => '==',
+							'value' => 'post',
+							'order_no' => 0,
+							'group_no' => 0,
+						),
+					),
+				),
+				'options' => array (
+					'position' => 'normal',
+					'layout' => 'no_box',
+					'hide_on_screen' => array (
+					),
+				),
+				'menu_order' => 0,
+			));
+
 			//Texbox custom field for links to other sites
 			register_field_group(array (
 				'id' => 'acf_povezave-do-povezanih-clankov',
@@ -273,67 +322,10 @@ Generate custom fields (ACF plugin required)
 					'hide_on_screen' => array (
 					),
 				),
-				'menu_order' => 0,
+				'menu_order' => 1,
 			));
-			//Relasionship custom field
-			register_field_group(array (
-				'id' => 'acf_relacije',
-				'title' => 'Relacije',
-				'fields' => array (
-					array (
-						'key' => 'field_55fbadff07c46',
-						'label' => 'Relacije',
-						'name' => 'relacije',
-						'type' => 'relationship',
-						'instructions' => 'Izberi podobne članke',
-						'return_format' => 'id',
-						'post_type' => array (
-							0 => 'post',
-						),
-						'taxonomy' => array (
-							0 => 'all',
-						),
-						'filters' => array (
-							0 => 'search',
-						),
-						'result_elements' => array (
-							0 => 'post_type',
-							1 => 'post_title',
-						),
-						'max' => 4,
-					),
-					array (
-						'key' => 'field_55fbae2f07c47',
-						'label' => '',
-						'name' => '',
-						'type' => 'text',
-						'default_value' => '',
-						'placeholder' => '',
-						'prepend' => '',
-						'append' => '',
-						'formatting' => 'html',
-						'maxlength' => '',
-					),
-				),
-				'location' => array (
-					array (
-						array (
-							'param' => 'post_type',
-							'operator' => '==',
-							'value' => 'post',
-							'order_no' => 0,
-							'group_no' => 0,
-						),
-					),
-				),
-				'options' => array (
-					'position' => 'normal',
-					'layout' => 'no_box',
-					'hide_on_screen' => array (
-					),
-				),
-				'menu_order' => 0,
-			));
+
+
 		}
 	}
 }
