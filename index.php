@@ -52,36 +52,44 @@ class RelatedPost {
 */
 	 function url()
 	{
-		$relacije = get_field('links');
-		$povezave = explode ( "\n" , trim( $relacije ) );
-
-		foreach ( $povezave as $rp_item )
+		if ( $this->x < $this->show_posts )
 		{
-			$rp_item = trim($rp_item);
-			if(filter_var($rp_item, FILTER_VALIDATE_URL))
+			$relacije = get_field('links');
+			$povezave = explode ( "\n" , trim( $relacije ) );
+
+			foreach ( $povezave as $rp_item )
 			{
-				$this->ex_posts_array[] = array();
-				$num = count($this->ex_posts_array) - 1;
+				$rp_item = trim($rp_item);
+				if(filter_var($rp_item, FILTER_VALIDATE_URL))
+				{
+					$this->ex_posts_array[] = array();
+					$num = count($this->ex_posts_array) - 1;
 
-				$rp_html = file_get_contents( trim( $rp_item ) );
+					$rp_html = file_get_contents( trim( $rp_item ) );
 
-				$rp_pattern = '/(?<=og:title" content=")(.*)(?=")/'; //Najdi naslov
-				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$this->ex_posts_array[$num][post_title] = $rp_matches[0];
+					$rp_pattern = '/(?<=og:title" content=")(.*)(?=")/'; //Najdi naslov
+					preg_match($rp_pattern, $rp_html, $rp_matches);
+					$this->ex_posts_array[$num][post_title] = $rp_matches[0];
 
-				$rp_pattern = '/(?<=og:description" content=")(.*)(?=")/'; //Najdi opis
-				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$this->ex_posts_array[$num][post_excerpt] = wp_trim_words( $rp_matches[0], 55 );
+					$rp_pattern = '/(?<=og:description" content=")(.*)(?=")/'; //Najdi opis
+					preg_match($rp_pattern, $rp_html, $rp_matches);
+					$this->ex_posts_array[$num][post_excerpt] = wp_trim_words( $rp_matches[0], 55 );
 
-				$rp_pattern = '/(?<=og:url" content=")(.*)(?=")/'; //Najdi url
-				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$this->ex_posts_array[$num][link] = $rp_matches[0];
+					$rp_pattern = '/(?<=og:url" content=")(.*)(?=")/'; //Najdi url
+					preg_match($rp_pattern, $rp_html, $rp_matches);
+					$this->ex_posts_array[$num][link] = $rp_matches[0];
 
-				$rp_pattern = '/(?<=og:image" content=")(.*)(?=")/'; //Najdi sliko
-				preg_match($rp_pattern, $rp_html, $rp_matches);
-				$this->ex_posts_array[$num][image] = $rp_matches[0];
+					$rp_pattern = '/(?<=og:image" content=")(.*)(?=")/'; //Najdi sliko
+					preg_match($rp_pattern, $rp_html, $rp_matches);
+					$this->ex_posts_array[$num][image] = $rp_matches[0];
 
-				$this->x++;
+					$this->x++;
+					if ( $this->x == $this->show_posts )
+					{
+						break;
+					}
+
+				}
 			}
 		}
 	}
@@ -90,14 +98,17 @@ class RelatedPost {
 */
 	public function selected()
 	{
-		$relacije = get_field('relacije');	//ACF function, no plugin no fun
-		if ($relacije)
+		if ( $this->x < $this->show_posts )
 		{
-			$args = array( 'post__in' => $relacije );
-			$post_array_temp = get_posts( $args );
+			$relacije = get_field('relacije');	//ACF function, no plugin no fun
+			if ($relacije)
+			{
+				$args = array( 'post__in' => $relacije );
+				$post_array_temp = get_posts( $args );
 
-			$this->posts_array = array_merge($this->posts_array, $post_array_temp);
-			$this->x += count( $post_array_temp );
+				$this->posts_array = array_merge($this->posts_array, $post_array_temp);
+				$this->x += count( $post_array_temp );
+			}
 		}
 	}
 /**
@@ -106,22 +117,20 @@ class RelatedPost {
 	function print_posts()
 	{
 		global $post;
-		$i = 0;
-		foreach ( $this->posts_array as $post)##and $i < $this->show_posts)
+		foreach ( $this->posts_array as $post)
 		{
 			setup_postdata($post);
 			if ( !assert( locate_template( 'rp_template.php', true, false ) ) )
 			{
 				include "rp_template.php";
 			}
-			$i++;
 		}
 		wp_reset_postdata();
 	}
 
 	function print_ex_posts()
 	{
-		foreach ( $this->ex_posts_array as $post)##and $i < $this->show_posts)
+		foreach ( $this->ex_posts_array as $post)
 		{
 			if ( !assert( locate_template( 'rp_template_ex.php', true, false ) ) )
 			{
