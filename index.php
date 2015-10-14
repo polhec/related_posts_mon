@@ -145,11 +145,13 @@ function related_posts()
 		}
 
 		$rp_oznake = get_the_tags();
-		foreach($rp_oznake as $rp_oznaka) 
-		{
-			$rp_tag_list[] = $rp_oznaka->term_id;
+		$rp_tag_list = array();
+		if(is_array($rp_oznake)) {
+			foreach($rp_oznake as $rp_oznaka) 
+			{
+				$rp_tag_list[] = $rp_oznaka->term_id;
+			}
 		}
-
 		$rp_args = array(
 			'posts_per_page'   	=> 6-$rp_x,
 			'offset'           	=> 0,
